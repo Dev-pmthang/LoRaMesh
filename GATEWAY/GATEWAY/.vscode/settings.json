@@ -1,0 +1,15 @@
+{
+    "editor.fontFamily": "JetBrainsMono-Regular",
+    "files.associations": {
+        "array": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled",
+    "cmake.sourceDirectory": "C:/Users/VANSILVER/Downloads/GATEWAY/GATEWAY/lib/ArduinoJson"
+}

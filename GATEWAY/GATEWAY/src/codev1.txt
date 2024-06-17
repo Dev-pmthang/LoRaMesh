@@ -1,0 +1,42 @@
+#include <Arduino.h>
+#include "WIFI_MT.h"
+#include "lora_functions.h"
+
+void setup()
+{
+    Serial.begin(115200);
+    init_gpio();
+    init_wifi();
+    clear_wifi();
+    firebase_init();
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+    lora_init();
+    LoRa.receive();
+}
+
+void loop()
+{
+    int packetSize = LoRa.parsePacket();
+    unsigned long newMillis = millis();
+    if (packetSize)
+    {
+        getLoRaData();
+    }
+    if (newMillis - currentMillis >= interval)
+    {
+        Serial.println("SEND");
+        send_node(expectedNode, "");
+        currentRetry++; // Tăng biến đếm số lần thử cho node hiện tại
+        currentMillis = newMillis;
+    }
+    // Nếu đã thử đủ số lần tối đa cho node hiện tại
+    if (currentRetry >= maxRetryCount)
+    {
+        Serial.print("NO DATA FROM NODE ");
+        Serial.println(expectedNode);
+        Firebase.RTDB.setInt(&fbdo, "STT NODE ERROR", expectedNode);
+        currentRetry = 0;
+        expectedNode = (expectedNode % 3) + 1;
+    }
+}

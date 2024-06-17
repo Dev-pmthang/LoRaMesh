@@ -1,0 +1,117 @@
+
+#include <Arduino.h>
+#include <LoRa.h>
+#include <SPI.h>
+#include <string.h>
+
+#define NSS 5
+#define RST 14
+#define DI0 27
+
+const uint8_t nodeId = 1;
+uint16_t readingID = 1; // Use uint16_t or int16_t if appropriate
+String dataSensor = "";
+String data = "";
+String temp;
+String humi;
+unsigned long previousMillis = 0; // Biến lưu thời gian trước đó
+const long interval = 2000;       // không gian lưu trữ giữa các lần gửi
+
+float random_float(float min, float max)
+{
+  if (min > max)
+  {
+    float temp = min;
+    min = max;
+    max = temp;
+  }
+  return min + ((float)rand() / RAND_MAX) * (max - min);
+}
+
+void LoRa_txMode() // truyen du lieu
+{
+  LoRa.idle();            // set standby mode
+  LoRa.disableInvertIQ(); // normal mode
+}
+
+void LoRa_rxMode()
+{                        // nhan du lieu
+  LoRa.enableInvertIQ(); // active invert I and Q signals
+  LoRa.receive();        // set receive mode
+}
+
+void LoRa_sendMessage(String message)
+{
+  LoRa_txMode();        // set tx mode
+  LoRa.beginPacket();   // start packet
+  LoRa.print(message);  // add payload
+  LoRa.endPacket(true); // finish packet and send it
+}
+
+void LoRa_init()
+{
+  Serial.println("LoRa NODE1");
+  LoRa.setPins(NSS, RST, DI0);
+  if (!LoRa.begin(433E6))
+  {
+    Serial.println("LoRa initialization failed!");
+    while (1)
+      ;
+  }
+  LoRa.setSyncWord(0xF2);
+  Serial.println("LoRa Node initialization successful!");
+}
+
+String readsensor()
+{
+  temp = random_float(30, 40);
+  humi = random_float(70, 80);
+  String gop = temp + humi;
+  return gop;
+}
+
+void onReceive(int packetSize)
+{
+  if (packetSize == 0)
+    return;
+  if (packetSize)
+  {
+    String data = "";
+    while (LoRa.available())
+    {
+      data = LoRa.readString();
+      if (data == "N1")
+      {
+        String sendnode1 = String(readingID) + "/" + dataSensor;
+        LoRa_sendMessage(sendnode1);
+      }
+      else if (data == "N3")
+      {
+        String sendnode3 = "N1N3";
+        LoRa_sendMessage(sendnode3);
+      }
+      else if(data == "3/"){
+        String node3 = data;
+        LoRa_sendMessage(node3);
+      }
+    }
+  }
+  LoRa.receive(); // Sẵn sàng nhận dữ liệu
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  LoRa_init();
+  dataSensor = readsensor();
+  LoRa.onReceive(onReceive);
+  LoRa.receive(); // Sẵn sàng nhận dữ liệu
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    dataSensor = readsensor();
+  }
+}
